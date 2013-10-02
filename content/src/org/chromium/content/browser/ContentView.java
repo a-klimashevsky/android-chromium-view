@@ -574,6 +574,10 @@ public class ContentView extends FrameLayout
     public boolean awakenScrollBars(int startDelay, boolean invalidate) {
         return mContentViewCore.awakenScrollBars(startDelay, invalidate);
     }
+    
+    public void addJavascriptInterface(Object object, String name) {
+    	mContentViewCore.addJavascriptInterface(object, name);
+    }
 
     @Override
     public boolean awakenScrollBars() {

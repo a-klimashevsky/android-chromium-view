@@ -1,6 +1,6 @@
 /*
  * This file is auto-generated.  DO NOT MODIFY.
- * Original file: /Users/davis/git/android-chromium-view/eyes-free/src/com/googlecode/eyesfree/braille/selfbraille/ISelfBrailleService.aidl
+ * Original file: D:\\work\\android\\workspace\\orfograf\\android-chromium-view\\eyes-free\\src\\com\\googlecode\\eyesfree\\braille\\selfbraille\\ISelfBrailleService.aidl
  */
 package com.googlecode.eyesfree.braille.selfbraille;
 /**
