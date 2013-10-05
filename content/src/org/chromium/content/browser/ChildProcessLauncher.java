@@ -6,7 +6,6 @@ package org.chromium.content.browser;
 
 import android.content.Context;
 import android.util.Log;
-import android.util.SparseIntArray;
 import android.view.Surface;
 
 import java.util.ArrayList;
@@ -40,24 +39,23 @@ public class ChildProcessLauncher {
 
     // The upper limit on the number of simultaneous sandboxed and privileged child service process
     // instances supported. Each limit must not exceed total number of SandboxedProcessServiceX
-    // classes and PrivilegedProcessServiceX classes declared in this package and defined as
-    // services in the embedding application's manifest file.
+    // classes and PrivilegedProcessClassX declared in this package, and defined as services in the
+    // embedding application's manifest file.
     // (See {@link ChildProcessService} for more details on defining the services.)
     /* package */ static final int MAX_REGISTERED_SANDBOXED_SERVICES = 13;
     /* package */ static final int MAX_REGISTERED_PRIVILEGED_SERVICES = 3;
 
     private static class ChildConnectionAllocator {
-        // Connections to services. Indices of the array correspond to the service numbers.
         private ChildProcessConnection[] mChildProcessConnections;
 
-        // The list of free (not bound) service indices. When looking for a free service, the first
-        // index in that list should be used. When a service is unbound, its index is added to the
-        // end of the list. This is so that we avoid immediately reusing the freed service (see
-        // http://crbug.com/164069): the framework might keep a service process alive when it's been
-        // unbound for a short time. If a new connection to the same service is bound at that point,
-        // the process is reused and bad things happen (mostly static variables are set when we
-        // don't expect them to).
-        // SHOULD BE ACCESSED WITH mConnectionLock.
+        // The list of free slots in corresponing Connections.  When looking for a free connection,
+        // the first index in that list should be used. When a connection is freed, its index
+        // is added to the end of the list. This is so that we avoid immediately reusing a freed
+        // connection (see bug crbug.com/164069): the framework might keep a service process alive
+        // when it's been unbound for a short time.  If a connection to that same service is bound
+        // at that point, the process is reused and bad things happen (mostly static variables are
+        // set when we don't expect them to).
+        // SHOULD BE ACCESSED WITH THE mConnectionLock.
         private ArrayList<Integer> mFreeConnectionIndices;
         private final Object mConnectionLock = new Object();
 
@@ -115,27 +113,27 @@ public class ChildProcessLauncher {
     }
 
     // Service class for child process. As the default value it uses SandboxedProcessService0 and
-    // PrivilegedProcessService0.
-    private static final ChildConnectionAllocator sSandboxedChildConnectionAllocator =
+    // PrivilegedProcessService0
+    private static final ChildConnectionAllocator mSandboxedChildConnectionAllocator =
             new ChildConnectionAllocator(true);
-    private static final ChildConnectionAllocator sPrivilegedChildConnectionAllocator =
+    private static final ChildConnectionAllocator mPrivilegedChildConnectionAllocator =
             new ChildConnectionAllocator(false);
 
-    private static boolean sConnectionAllocated = false;
+    private static boolean mConnectionAllocated = false;
 
-    // Sets service class for sandboxed service and privileged service.
+   // Sets service class for sandboxed service and privileged service
     public static void setChildProcessClass(
             Class<? extends SandboxedProcessService> sandboxedServiceClass,
             Class<? extends PrivilegedProcessService> privilegedServiceClass) {
         // We should guarantee this is called before allocating connection.
-        assert !sConnectionAllocated;
-        sSandboxedChildConnectionAllocator.setServiceClass(sandboxedServiceClass);
-        sPrivilegedChildConnectionAllocator.setServiceClass(privilegedServiceClass);
+        assert !mConnectionAllocated;
+        mSandboxedChildConnectionAllocator.setServiceClass(sandboxedServiceClass);
+        mPrivilegedChildConnectionAllocator.setServiceClass(privilegedServiceClass);
     }
 
     private static ChildConnectionAllocator getConnectionAllocator(boolean inSandbox) {
         return inSandbox ?
-                sSandboxedChildConnectionAllocator : sPrivilegedChildConnectionAllocator;
+                mSandboxedChildConnectionAllocator : mPrivilegedChildConnectionAllocator;
     }
 
     private static ChildProcessConnection allocateConnection(Context context,
@@ -147,7 +145,7 @@ public class ChildProcessLauncher {
                     stop(pid);
                 }
             };
-        sConnectionAllocated = true;
+        mConnectionAllocated = true;
         return getConnectionAllocator(inSandbox).allocate(context, deathCallback);
     }
 
@@ -155,7 +153,7 @@ public class ChildProcessLauncher {
             String[] commandLine, boolean inSandbox) {
         ChildProcessConnection connection = allocateConnection(context, inSandbox);
         if (connection != null) {
-            connection.start(commandLine);
+            connection.bind(commandLine);
         }
         return connection;
     }
@@ -168,20 +166,15 @@ public class ChildProcessLauncher {
         return;
     }
 
-    // Represents an invalid process handle; same as base/process/process.h kNullProcessHandle.
+    // Represents an invalid process handle; same as base/process.h kNullProcessHandle.
     private static final int NULL_PROCESS_HANDLE = 0;
 
     // Map from pid to ChildService connection.
-    private static Map<Integer, ChildProcessConnection> sServiceMap =
+    private static Map<Integer, ChildProcessConnection> mServiceMap =
             new ConcurrentHashMap<Integer, ChildProcessConnection>();
 
-    // Map from pid to the count of oom bindings. "Oom binding" is a binding that raises the process
-    // oom priority so that it shouldn't be killed by the OS out-of-memory killer under normal
-    // conditions (it can still be killed under drastic memory pressure).
-    private static SparseIntArray sOomBindingCount = new SparseIntArray();
-
     // A pre-allocated and pre-bound connection ready for connection setup, or null.
-    private static ChildProcessConnection sSpareSandboxedConnection = null;
+    static ChildProcessConnection mSpareSandboxedConnection = null;
 
     /**
      * Returns the child process service interface for the given pid. This may be called on
@@ -192,7 +185,7 @@ public class ChildProcessLauncher {
      * @return The IChildProcessService or null if the service no longer exists.
      */
     public static IChildProcessService getChildService(int pid) {
-        ChildProcessConnection connection = sServiceMap.get(pid);
+        ChildProcessConnection connection = mServiceMap.get(pid);
         if (connection != null) {
             return connection.getService();
         }
@@ -200,16 +193,16 @@ public class ChildProcessLauncher {
     }
 
     /**
-     * Should be called early in startup so the work needed to spawn the child process can be done
-     * in parallel to other startup work. Must not be called on the UI thread. Spare connection is
-     * created in sandboxed child process.
+     * Should be called early in startup so the work needed to spawn the child process can
+     * be done in parallel to other startup work. Must not be called on the UI thread.
+     * Spare connection is created in sandboxed child process.
      * @param context the application context used for the connection.
      */
     public static void warmUp(Context context) {
         synchronized (ChildProcessLauncher.class) {
             assert !ThreadUtils.runningOnUiThread();
-            if (sSpareSandboxedConnection == null) {
-                sSpareSandboxedConnection = allocateBoundConnection(context, null, true);
+            if (mSpareSandboxedConnection == null) {
+                mSpareSandboxedConnection = allocateBoundConnection(context, null, true);
             }
         }
     }
@@ -229,10 +222,10 @@ public class ChildProcessLauncher {
     }
 
     /**
-     * Spawns and connects to a child process. May be called on any thread. It will not block, but
-     * will instead callback to {@link #nativeOnChildProcessStarted} when the connection is
-     * established. Note this callback will not necessarily be from the same thread (currently it
-     * always comes from the main thread).
+     * Spawns and connects to a child process. May be called on any thread. It will not
+     * block, but will instead callback to {@link #nativeOnChildProcessStarted} when the
+     * connection is established. Note this callback will not necessarily be from the same thread
+     * (currently it always comes from the main thread).
      *
      * @param context Context used to obtain the application context.
      * @param commandLine The child process command line argv.
@@ -272,8 +265,8 @@ public class ChildProcessLauncher {
         ChildProcessConnection allocatedConnection = null;
         synchronized (ChildProcessLauncher.class) {
             if (inSandbox) {
-                allocatedConnection = sSpareSandboxedConnection;
-                sSpareSandboxedConnection = null;
+                allocatedConnection = mSpareSandboxedConnection;
+                mSpareSandboxedConnection = null;
             }
         }
         if (allocatedConnection == null) {
@@ -286,45 +279,25 @@ public class ChildProcessLauncher {
         }
         final ChildProcessConnection connection = allocatedConnection;
         Log.d(TAG, "Setting up connection to process: slot=" + connection.getServiceNumber());
-
-        ChildProcessConnection.ConnectionCallbacks connectionCallbacks =
-                new ChildProcessConnection.ConnectionCallbacks() {
-            public void onConnected(int pid, int oomBindingCount) {
+        // Note: This runnable will be executed when the child connection is setup.
+        final Runnable onConnect = new Runnable() {
+            @Override
+            public void run() {
+                final int pid = connection.getPid();
                 Log.d(TAG, "on connect callback, pid=" + pid + " context=" + clientContext);
                 if (pid != NULL_PROCESS_HANDLE) {
-                    sOomBindingCount.put(pid, oomBindingCount);
-                    sServiceMap.put(pid, connection);
+                    mServiceMap.put(pid, connection);
                 } else {
                     freeConnection(connection);
                 }
                 nativeOnChildProcessStarted(clientContext, pid);
             }
-
-            public void onOomBindingAdded(int pid) {
-                if (pid != NULL_PROCESS_HANDLE) {
-                    sOomBindingCount.put(pid, sOomBindingCount.get(pid) + 1);
-                }
-            }
-
-            public void onOomBindingRemoved(int pid) {
-                if (pid != NULL_PROCESS_HANDLE) {
-                    int count = sOomBindingCount.get(pid, -1);
-                    assert count > 0;
-                    count--;
-                    if (count > 0) {
-                        sOomBindingCount.put(pid, count);
-                    } else {
-                        sOomBindingCount.delete(pid);
-                    }
-                }
-            }
         };
-
         // TODO(sievers): Revisit this as it doesn't correctly handle the utility process
         // assert callbackType != CALLBACK_FOR_UNKNOWN_PROCESS;
 
-        connection.setupConnection(commandLine, filesToBeMapped, createCallback(callbackType),
-                connectionCallbacks);
+        connection.setupConnection(
+                commandLine, filesToBeMapped, createCallback(callbackType), onConnect);
     }
 
     /**
@@ -335,27 +308,14 @@ public class ChildProcessLauncher {
     @CalledByNative
     static void stop(int pid) {
         Log.d(TAG, "stopping child connection: pid=" + pid);
-        ChildProcessConnection connection = sServiceMap.remove(pid);
-        if (connection == null) {
-            LogPidWarning(pid, "Tried to stop non-existent connection");
-            return;
-        }
-        connection.stop();
-        freeConnection(connection);
-    }
 
-    /**
-     * Remove the initial child process binding. Child processes are bound with initial binding to
-     * protect them from getting killed before they are put to use. This method allows to remove the
-     * binding once it is no longer needed.
-     */
-    static void removeInitialBinding(int pid) {
-        ChildProcessConnection connection = sServiceMap.get(pid);
+        ChildProcessConnection connection = mServiceMap.remove(pid);
         if (connection == null) {
-            LogPidWarning(pid, "Tried to remove a binding for a non-existent connection");
+            Log.w(TAG, "Tried to stop non-existent connection to pid: " + pid);
             return;
         }
-        connection.removeInitialBinding();
+        connection.unbind();
+        freeConnection(connection);
     }
 
     /**
@@ -366,12 +326,12 @@ public class ChildProcessLauncher {
      * @param pid The process handle of the service connection obtained from {@link #start}.
      */
     static void bindAsHighPriority(int pid) {
-        ChildProcessConnection connection = sServiceMap.get(pid);
+        ChildProcessConnection connection = mServiceMap.get(pid);
         if (connection == null) {
-            LogPidWarning(pid, "Tried to bind a non-existent connection");
+            Log.w(TAG, "Tried to bind a non-existent connection to pid: " + pid);
             return;
         }
-        connection.attachAsActive();
+        connection.bindHighPriority();
     }
 
     /**
@@ -380,20 +340,12 @@ public class ChildProcessLauncher {
      * @param pid The process handle of the service obtained from {@link #start}.
      */
     static void unbindAsHighPriority(int pid) {
-        ChildProcessConnection connection = sServiceMap.get(pid);
+        ChildProcessConnection connection = mServiceMap.get(pid);
         if (connection == null) {
-            LogPidWarning(pid, "Tried to unbind non-existent connection");
+            Log.w(TAG, "Tried to unbind non-existent connection to pid: " + pid);
             return;
         }
-        connection.detachAsActive();
-    }
-
-    /**
-     * @return True iff the given service process is protected from the out-of-memory killing, or it
-     * was protected from it when it died.
-     */
-    static boolean isOomProtected(int pid) {
-        return sOomBindingCount.get(pid) > 0;
+        connection.unbindHighPriority(false);
     }
 
     /**
@@ -433,16 +385,8 @@ public class ChildProcessLauncher {
         };
     };
 
-    private static void LogPidWarning(int pid, String message) {
-        // This class is effectively a no-op in single process mode, so don't log warnings there.
-        if (pid > 0 && !nativeIsSingleProcess()) {
-            Log.w(TAG, message + ", pid=" + pid);
-        }
-    }
-
     private static native void nativeOnChildProcessStarted(int clientContext, int pid);
     private static native Surface nativeGetViewSurface(int surfaceId);
     private static native void nativeEstablishSurfacePeer(
             int pid, Surface surface, int primaryID, int secondaryID);
-    private static native boolean nativeIsSingleProcess();
 }

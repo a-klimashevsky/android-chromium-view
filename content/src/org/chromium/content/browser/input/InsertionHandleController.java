@@ -16,8 +16,6 @@ import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.PopupWindow;
 
-import com.google.common.annotations.VisibleForTesting;
-
 /**
  * CursorController for inserting text at the cursor position.
  */
@@ -110,7 +108,6 @@ public abstract class InsertionHandleController implements CursorController {
         return mHandle.getAdjustedPositionY();
     }
 
-    @VisibleForTesting
     public HandleView getHandleViewForTest() {
         return mHandle;
     }

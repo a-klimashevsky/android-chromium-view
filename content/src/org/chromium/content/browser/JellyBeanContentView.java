@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
-import android.view.accessibility.AccessibilityNodeProvider;
 
 import org.chromium.ui.WindowAndroid;
 
@@ -29,15 +28,5 @@ class JellyBeanContentView extends ContentView {
         }
 
         return super.performAccessibilityAction(action, arguments);
-    }
-
-    @Override
-    public AccessibilityNodeProvider getAccessibilityNodeProvider() {
-        AccessibilityNodeProvider provider = getContentViewCore().getAccessibilityNodeProvider();
-        if (provider != null) {
-            return provider;
-        } else {
-            return super.getAccessibilityNodeProvider();
-        }
     }
 }

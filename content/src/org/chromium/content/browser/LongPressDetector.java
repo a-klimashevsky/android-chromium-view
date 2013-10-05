@@ -67,9 +67,6 @@ class LongPressDetector {
      * This is an interface to execute the LongPress when it receives the onLongPress message.
      */
     interface LongPressDelegate {
-        /**
-         * @param event The event will be recycled after this call has returned.
-         */
         public void onLongPress(MotionEvent event);
     }
 
@@ -77,16 +74,18 @@ class LongPressDetector {
      * Initiates a LONG_PRESS gesture timer if needed.
      */
     void startLongPressTimerIfNeeded(MotionEvent ev) {
-        if (ev.getAction() != MotionEvent.ACTION_DOWN) return;
+        if (!canHandle(ev)) return;
 
-        // If there is a current down, we do not expect another down event before
-        // receiving an up event
-        if (mCurrentDownEvent != null) return;
+        if (mCurrentDownEvent != null) mCurrentDownEvent.recycle();
 
         mCurrentDownEvent = MotionEvent.obtain(ev);
         mLongPressHandler.sendEmptyMessageAtTime(LONG_PRESS, mCurrentDownEvent.getDownTime()
                 + TAP_TIMEOUT + LONGPRESS_TIMEOUT);
         mInLongPress = false;
+    }
+
+    private boolean canHandle(MotionEvent ev) {
+        return ev.getAction() == MotionEvent.ACTION_DOWN;
     }
 
     // Cancel LONG_PRESS timers.
@@ -104,14 +103,16 @@ class LongPressDetector {
                 final int deltaY = (int) (y - mCurrentDownEvent.getY());
                 int distance = (deltaX * deltaX) + (deltaY * deltaY);
                 if (distance > mTouchSlopSquare) {
-                    cancelLongPress();
+                    mInLongPress = false;
+                    mLongPressHandler.removeMessages(LONG_PRESS);
                 }
                 break;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 if (mCurrentDownEvent.getDownTime() + TAP_TIMEOUT + LONGPRESS_TIMEOUT >
                     ev.getEventTime()) {
-                    cancelLongPress();
+                    mInLongPress = false;
+                    mLongPressHandler.removeMessages(LONG_PRESS);
                 }
                 break;
             default:
@@ -134,11 +135,8 @@ class LongPressDetector {
     }
 
     void cancelLongPress() {
-        mInLongPress = false;
-        if (hasPendingMessage()) {
+        if (mLongPressHandler.hasMessages(LONG_PRESS)) {
             mLongPressHandler.removeMessages(LONG_PRESS);
-            mCurrentDownEvent.recycle();
-            mCurrentDownEvent = null;
         }
     }
 
@@ -150,12 +148,10 @@ class LongPressDetector {
     private void dispatchLongPress() {
         mInLongPress = true;
         mLongPressDelegate.onLongPress(mCurrentDownEvent);
-        mCurrentDownEvent.recycle();
-        mCurrentDownEvent = null;
     }
 
     boolean hasPendingMessage() {
-        return mCurrentDownEvent != null;
+        return mLongPressHandler.hasMessages(LONG_PRESS);
     }
 
     void onOfferTouchEventToJavaScript(MotionEvent event) {

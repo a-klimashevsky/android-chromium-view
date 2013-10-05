@@ -21,12 +21,7 @@ import org.chromium.content.common.TraceEvent;
  * approximation of a vertical sync starting point; see also http://crbug.com/156397.
  */
 public class VSyncMonitor {
-    private static final String TAG = "VSyncMonitor";
-
-    private static final long NANOSECONDS_PER_SECOND = 1000000000;
-    private static final long NANOSECONDS_PER_MILLISECOND = 1000000;
-    private static final long NANOSECONDS_PER_MICROSECOND = 1000;
-    public static final int MAX_AUTO_ONVSYNC_COUNT = 5;
+    private static final String TAG = VSyncMonitor.class.getSimpleName();
 
     public interface Listener {
         /**
@@ -37,13 +32,22 @@ public class VSyncMonitor {
         public void onVSync(VSyncMonitor monitor, long vsyncTimeMicros);
     }
 
+    private static final long NANOSECONDS_PER_SECOND = 1000000000;
+    private static final long NANOSECONDS_PER_MILLISECOND = 1000000;
+    private static final long NANOSECONDS_PER_MICROSECOND = 1000;
+
     private Listener mListener;
 
     // Display refresh rate as reported by the system.
     private final long mRefreshPeriodNano;
 
+    // Last time requestUpdate() was called.
+    private long mLastUpdateRequestNano;
+
     private boolean mHaveRequestInFlight;
+
     private int mTriggerNextVSyncCount;
+    private static final int MAX_VSYNC_COUNT = 5;
 
     // Choreographer is used to detect vsync on >= JB.
     private final Choreographer mChoreographer;
@@ -130,10 +134,11 @@ public class VSyncMonitor {
     /**
      * Request to be notified of the closest display vsync events.
      * Listener.onVSync() will be called soon after the upcoming vsync pulses.
-     * It will be called at most MAX_AUTO_ONVSYNC_COUNT times unless requestUpdate() is called.
+     * It will be called at most MAX_VSYNC_COUNT times unless requestUpdate() is called again.
      */
     public void requestUpdate() {
-        mTriggerNextVSyncCount = MAX_AUTO_ONVSYNC_COUNT;
+        mTriggerNextVSyncCount = MAX_VSYNC_COUNT;
+        mLastUpdateRequestNano = getCurrentNanoTime();
         postCallback();
     }
 
@@ -152,7 +157,7 @@ public class VSyncMonitor {
     private void onVSyncCallback(long frameTimeNanos) {
         assert mHaveRequestInFlight;
         mHaveRequestInFlight = false;
-        if (mTriggerNextVSyncCount >= 0) {
+        if (mTriggerNextVSyncCount > 0) {
             mTriggerNextVSyncCount--;
             postCallback();
         }
@@ -173,7 +178,7 @@ public class VSyncMonitor {
 
     private void postRunnableCallback() {
         assert !isVSyncSignalAvailable();
-        final long currentTime = getCurrentNanoTime();
+        final long currentTime = mLastUpdateRequestNano;
         final long lastRefreshTime = mGoodStartingPointNano +
                 ((currentTime - mGoodStartingPointNano) / mRefreshPeriodNano) * mRefreshPeriodNano;
         long delay = (lastRefreshTime + mRefreshPeriodNano) - currentTime;

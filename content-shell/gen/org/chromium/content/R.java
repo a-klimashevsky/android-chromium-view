@@ -26,7 +26,6 @@ public final class R {
 		public static final int ondemand_overlay = 0x7f020008;
 	}
 	public static final class id {
-		public static final int ampm = 0x7f080019;
 		public static final int autofill_label = 0x7f080002;
 		public static final int autofill_menu_text = 0x7f080001;
 		public static final int autofill_popup_window = 0x7f080000;
@@ -37,23 +36,17 @@ public final class R {
 		public static final int date_picker = 0x7f080011;
 		public static final int gradient = 0x7f080006;
 		public static final int gradient_border = 0x7f080005;
-		public static final int hour = 0x7f080013;
-		public static final int milli = 0x7f080018;
-		public static final int minute = 0x7f080014;
 		public static final int more_colors_button = 0x7f08000c;
 		public static final int more_colors_button_border = 0x7f08000b;
-		public static final int pickers = 0x7f080020;
-		public static final int position_in_year = 0x7f080021;
-		public static final int second = 0x7f080016;
-		public static final int second_colon = 0x7f080015;
-		public static final int second_dot = 0x7f080017;
+		public static final int pickers = 0x7f080019;
+		public static final int position_in_year = 0x7f08001a;
 		public static final int seek_bar = 0x7f080007;
 		public static final int selected_color_view = 0x7f08000f;
 		public static final int selected_color_view_border = 0x7f08000e;
 		public static final int text = 0x7f080004;
 		public static final int time_picker = 0x7f080012;
 		public static final int title = 0x7f08000d;
-		public static final int year = 0x7f080022;
+		public static final int year = 0x7f08001b;
 	}
 	public static final class layout {
 		public static final int autofill_text = 0x7f030000;
@@ -61,21 +54,15 @@ public final class R {
 		public static final int color_picker_dialog_content = 0x7f030002;
 		public static final int color_picker_dialog_title = 0x7f030003;
 		public static final int date_time_picker_dialog = 0x7f030005;
-		public static final int multi_field_time_picker_dialog = 0x7f030006;
-		public static final int two_field_date_picker = 0x7f030008;
+		public static final int two_field_date_picker = 0x7f030007;
 	}
 	public static final class string {
 		public static final int accessibility_content_view = 0x7f04000b;
-		public static final int accessibility_date_picker_month = 0x7f04001a;
-		public static final int accessibility_date_picker_week = 0x7f04001b;
-		public static final int accessibility_date_picker_year = 0x7f04001c;
-		public static final int accessibility_datetime_picker_date = 0x7f040018;
-		public static final int accessibility_datetime_picker_time = 0x7f040019;
-		public static final int accessibility_time_picker_ampm = 0x7f040021;
-		public static final int accessibility_time_picker_hour = 0x7f04001d;
-		public static final int accessibility_time_picker_milli = 0x7f040020;
-		public static final int accessibility_time_picker_minute = 0x7f04001e;
-		public static final int accessibility_time_picker_second = 0x7f04001f;
+		public static final int accessibility_date_picker_month = 0x7f040014;
+		public static final int accessibility_date_picker_week = 0x7f040015;
+		public static final int accessibility_date_picker_year = 0x7f040016;
+		public static final int accessibility_datetime_picker_date = 0x7f040012;
+		public static final int accessibility_datetime_picker_time = 0x7f040013;
 		public static final int actionbar_share = 0x7f040009;
 		public static final int actionbar_web_search = 0x7f04000a;
 		public static final int color_picker_button_cancel = 0x7f040007;
@@ -90,20 +77,14 @@ public final class R {
 		public static final int date_picker_dialog_title = 0x7f04000e;
 		public static final int date_time_picker_dialog_title = 0x7f04000f;
 		public static final int low_memory_error = 0x7f040000;
-		public static final int media_player_error_button = 0x7f040025;
-		public static final int media_player_error_text_invalid_progressive_playback = 0x7f040023;
-		public static final int media_player_error_text_unknown = 0x7f040024;
-		public static final int media_player_error_title = 0x7f040022;
-		public static final int media_player_loading_video = 0x7f040026;
-		public static final int month_picker_dialog_title = 0x7f040016;
+		public static final int media_player_error_button = 0x7f04001a;
+		public static final int media_player_error_text_invalid_progressive_playback = 0x7f040018;
+		public static final int media_player_error_text_unknown = 0x7f040019;
+		public static final int media_player_error_title = 0x7f040017;
+		public static final int media_player_loading_video = 0x7f04001b;
+		public static final int month_picker_dialog_title = 0x7f040010;
 		public static final int opening_file_error = 0x7f040001;
-		public static final int time_picker_dialog_am = 0x7f040011;
-		public static final int time_picker_dialog_hour_minute_separator = 0x7f040013;
-		public static final int time_picker_dialog_minute_second_separator = 0x7f040014;
-		public static final int time_picker_dialog_pm = 0x7f040012;
-		public static final int time_picker_dialog_second_subsecond_separator = 0x7f040015;
-		public static final int time_picker_dialog_title = 0x7f040010;
-		public static final int week_picker_dialog_title = 0x7f040017;
+		public static final int week_picker_dialog_title = 0x7f040011;
 	}
 	public static final class style {
 		public static final int AutofillPopupWindow = 0x7f070000;

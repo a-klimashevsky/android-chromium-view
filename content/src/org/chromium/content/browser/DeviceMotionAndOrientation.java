@@ -11,16 +11,17 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Looper;
 import android.util.Log;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 import org.chromium.base.CalledByNative;
-import org.chromium.base.CollectionUtil;
 import org.chromium.base.JNINamespace;
 import org.chromium.base.WeakContext;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -37,14 +38,14 @@ class DeviceMotionAndOrientation implements SensorEventListener {
     private Handler mHandler;
 
     // The lock to access the mHandler.
-    private final Object mHandlerLock = new Object();
+    private Object mHandlerLock = new Object();
 
     // Non-zero if and only if we're listening for events.
     // To avoid race conditions on the C++ side, access must be synchronized.
     private int mNativePtr;
 
     // The lock to access the mNativePtr.
-    private final Object mNativePtrLock = new Object();
+    private Object mNativePtrLock = new Object();
 
     // The acceleration vector including gravity expressed in the body frame.
     private float[] mAccelerationIncludingGravityVector;
@@ -66,17 +67,17 @@ class DeviceMotionAndOrientation implements SensorEventListener {
     static final int DEVICE_ORIENTATION = 0;
     static final int DEVICE_MOTION = 1;
 
-    static final Set<Integer> DEVICE_ORIENTATION_SENSORS = CollectionUtil.newHashSet(
+    static final ImmutableSet<Integer> DEVICE_ORIENTATION_SENSORS = ImmutableSet.of(
             Sensor.TYPE_ACCELEROMETER,
             Sensor.TYPE_MAGNETIC_FIELD);
 
-    static final Set<Integer> DEVICE_MOTION_SENSORS = CollectionUtil.newHashSet(
+    static final ImmutableSet<Integer> DEVICE_MOTION_SENSORS = ImmutableSet.of(
             Sensor.TYPE_ACCELEROMETER,
             Sensor.TYPE_LINEAR_ACCELERATION,
             Sensor.TYPE_GYROSCOPE);
 
     @VisibleForTesting
-    final Set<Integer> mActiveSensors = new HashSet<Integer>();
+    final Set<Integer> mActiveSensors = Sets.newHashSet();
     boolean mDeviceMotionIsActive = false;
     boolean mDeviceOrientationIsActive = false;
 
@@ -121,7 +122,7 @@ class DeviceMotionAndOrientation implements SensorEventListener {
 
     @CalledByNative
     public int getNumberActiveDeviceMotionSensors() {
-        Set<Integer> deviceMotionSensors = new HashSet<Integer>(DEVICE_MOTION_SENSORS);
+        Set<Integer> deviceMotionSensors = Sets.newHashSet(DEVICE_MOTION_SENSORS);
         deviceMotionSensors.removeAll(mActiveSensors);
         return DEVICE_MOTION_SENSORS.size() - deviceMotionSensors.size();
     }
@@ -137,7 +138,7 @@ class DeviceMotionAndOrientation implements SensorEventListener {
      */
     @CalledByNative
     public void stop(int eventType) {
-        Set<Integer> sensorsToRemainActive = new HashSet<Integer>();
+        Set<Integer> sensorsToRemainActive = Sets.newHashSet();
         synchronized (mNativePtrLock) {
             switch (eventType) {
                 case DEVICE_ORIENTATION:
@@ -155,7 +156,7 @@ class DeviceMotionAndOrientation implements SensorEventListener {
                     return;
             }
 
-            Set<Integer> sensorsToDeactivate = new HashSet<Integer>(mActiveSensors);
+            Set<Integer> sensorsToDeactivate = Sets.newHashSet(mActiveSensors);
             sensorsToDeactivate.removeAll(sensorsToRemainActive);
             unregisterSensors(sensorsToDeactivate);
             setEventTypeActive(eventType, false);
@@ -297,9 +298,9 @@ class DeviceMotionAndOrientation implements SensorEventListener {
      *                            activated. When false the method return true if at least one
      *                            sensor in sensorTypes could be activated.
      */
-    private boolean registerSensors(Set<Integer> sensorTypes, int rateInMilliseconds,
+    private boolean registerSensors(Iterable<Integer> sensorTypes, int rateInMilliseconds,
             boolean failOnMissingSensor) {
-        Set<Integer> sensorsToActivate = new HashSet<Integer>(sensorTypes);
+        Set<Integer> sensorsToActivate = Sets.newHashSet(sensorTypes);
         sensorsToActivate.removeAll(mActiveSensors);
         boolean success = false;
 
@@ -441,7 +442,6 @@ class DeviceMotionAndOrientation implements SensorEventListener {
             mSensorManager = sensorManager;
         }
 
-        @Override
         public boolean registerListener(SensorEventListener listener, int sensorType, int rate,
                 Handler handler) {
             List<Sensor> sensors = mSensorManager.getSensorList(sensorType);
@@ -451,7 +451,6 @@ class DeviceMotionAndOrientation implements SensorEventListener {
             return mSensorManager.registerListener(listener, sensors.get(0), rate, handler);
         }
 
-        @Override
         public void unregisterListener(SensorEventListener listener, int sensorType) {
             List<Sensor> sensors = mSensorManager.getSensorList(sensorType);
             if (!sensors.isEmpty()) {

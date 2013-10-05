@@ -19,24 +19,16 @@ public class DeviceUtils {
      */
     private static final int MINIMUM_TABLET_WIDTH_DP = 600;
 
-    private static Boolean sIsTv = null;
-    private static Boolean sIsTablet = null;
-
     /**
      * @param context Android's context
      * @return        Whether the app is should treat the device as a tablet for layout.
      */
     public static boolean isTablet(Context context) {
-        if (sIsTablet == null) {
-            if (isTv(context)) {
-                sIsTablet = true;
-                return sIsTablet;
-            }
-            int minimumScreenWidthDp = context.getResources().getConfiguration().
-                    smallestScreenWidthDp;
-            sIsTablet = minimumScreenWidthDp >= MINIMUM_TABLET_WIDTH_DP;
+        if (isTv(context)) {
+            return true;
         }
-        return sIsTablet;
+        int minimumScreenWidthDp = context.getResources().getConfiguration().smallestScreenWidthDp;
+        return minimumScreenWidthDp >= MINIMUM_TABLET_WIDTH_DP;
     }
 
     /**
@@ -48,15 +40,11 @@ public class DeviceUtils {
      * @return {@code true} if the device should be treated as TV.
      */
     public static boolean isTv(Context context) {
-        if (sIsTv == null) {
-            PackageManager manager = context.getPackageManager();
-            if (manager != null) {
-                sIsTv = manager.hasSystemFeature(PackageManager.FEATURE_TELEVISION);
-                return sIsTv;
-            }
-            sIsTv = false;
+        PackageManager manager = context.getPackageManager();
+        if (manager != null) {
+            return manager.hasSystemFeature(PackageManager.FEATURE_TELEVISION);
         }
-        return sIsTv;
+        return false;
     }
 
     /**

@@ -4,6 +4,7 @@
 
 package org.chromium.content.browser.input;
 
+import android.content.Context;
 import android.os.Handler;
 import android.os.ResultReceiver;
 import android.view.KeyCharacterMap;
@@ -39,7 +40,7 @@ import org.chromium.base.JNINamespace;
  */
 @JNINamespace("content")
 public class ImeAdapter {
-    public interface ImeAdapterDelegate {
+    public interface ViewEmbedder {
         /**
          * @param isFinish whether the event is occurring because input is finished.
          */
@@ -97,11 +98,14 @@ public class ImeAdapter {
     static int sModifierNumLockOn;
 
     private int mNativeImeAdapterAndroid;
+    private final Context mContext;
     private InputMethodManagerWrapper mInputMethodManagerWrapper;
     private AdapterInputConnection mInputConnection;
-    private final ImeAdapterDelegate mViewEmbedder;
+    private final ViewEmbedder mViewEmbedder;
     private final Handler mHandler;
     private DelayedDismissInput mDismissInput = null;
+    private final SelectionHandleController mSelectionHandleController;
+    private final InsertionHandleController mInsertionHandleController;
     private int mTextInputType;
     private int mInitialSelectionStart;
     private int mInitialSelectionEnd;
@@ -110,12 +114,17 @@ public class ImeAdapter {
     boolean mIsShowWithoutHideOutstanding = false;
 
     /**
-     * @param wrapper InputMethodManagerWrapper that should receive all the call directed to
-     *                InputMethodManager.
+     * @param context View context.
+     * @param selectionHandleController The controller that handles selection.
+     * @param insertionHandleController The controller that handles insertion.
      * @param embedder The view that is used for callbacks from ImeAdapter.
      */
-    public ImeAdapter(InputMethodManagerWrapper wrapper, ImeAdapterDelegate embedder) {
-        mInputMethodManagerWrapper = wrapper;
+    public ImeAdapter(Context context, SelectionHandleController selectionHandleController,
+            InsertionHandleController insertionHandleController, ViewEmbedder embedder) {
+        mContext = context;
+        mInputMethodManagerWrapper = new InputMethodManagerWrapper(context);
+        mSelectionHandleController = selectionHandleController;
+        mInsertionHandleController = insertionHandleController;
         mViewEmbedder = embedder;
         mHandler = new Handler();
     }
@@ -128,7 +137,7 @@ public class ImeAdapter {
     }
 
     @VisibleForTesting
-    public void setInputMethodManagerWrapper(InputMethodManagerWrapper immw) {
+    protected void setInputMethodManagerWrapper(InputMethodManagerWrapper immw) {
         mInputMethodManagerWrapper = immw;
     }
 
@@ -197,6 +206,11 @@ public class ImeAdapter {
         return modifiers;
     }
 
+    void hideSelectionAndInsertionHandleControllers() {
+        mSelectionHandleController.hideAndDisallowAutomaticShowing();
+        mInsertionHandleController.hideAndDisallowAutomaticShowing();
+    }
+
     public boolean isActive() {
         return mInputConnection != null && mInputConnection.isActive();
     }
@@ -246,9 +260,7 @@ public class ImeAdapter {
         mTextInputType = textInputType;
         mInitialSelectionStart = selectionStart;
         mInitialSelectionEnd = selectionEnd;
-        if (nativeImeAdapter != 0) {
-            nativeAttachImeAdapter(mNativeImeAdapterAndroid);
-        }
+        nativeAttachImeAdapter(mNativeImeAdapterAndroid);
     }
 
     /**
@@ -339,6 +351,10 @@ public class ImeAdapter {
 
         // Committing an empty string finishes the current composition.
         boolean isFinish = text.isEmpty();
+        if (!isFinish) {
+            mSelectionHandleController.hideAndDisallowAutomaticShowing();
+            mInsertionHandleController.hideAndDisallowAutomaticShowing();
+        }
         mViewEmbedder.onImeEvent(isFinish);
         int keyCode = shouldSendKeyEventWithKeyCode(text);
         long timeStampMs = System.currentTimeMillis();
@@ -359,11 +375,6 @@ public class ImeAdapter {
         }
 
         return true;
-    }
-
-    void finishComposingText() {
-        if (mNativeImeAdapterAndroid == 0) return;
-        nativeFinishComposingText(mNativeImeAdapterAndroid);
     }
 
     boolean translateAndSendNativeEvents(KeyEvent event) {
@@ -546,8 +557,6 @@ public class ImeAdapter {
             int newCursorPosition);
 
     private native void nativeCommitText(int nativeImeAdapterAndroid, String text);
-
-    private native void nativeFinishComposingText(int nativeImeAdapterAndroid);
 
     private native void nativeAttachImeAdapter(int nativeImeAdapterAndroid);
 

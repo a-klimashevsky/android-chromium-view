@@ -96,14 +96,6 @@ public class ContentView extends FrameLayout
             AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
 
-        if (getScrollBarStyle() == View.SCROLLBARS_INSIDE_OVERLAY) {
-            setHorizontalScrollBarEnabled(false);
-            setVerticalScrollBarEnabled(false);
-        }
-
-        setFocusable(true);
-        setFocusableInTouchMode(true);
-
         mContentViewCore = new ContentViewCore(context);
         mContentViewCore.initialize(this, this, nativeWebContents, windowAndroid,
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN ?
@@ -141,6 +133,10 @@ public class ContentView extends FrameLayout
     @Override
     public int getBackgroundColor() {
         return mContentViewCore.getBackgroundColor();
+    }
+    
+    public void addJavascriptInterface(Object object, String name) {
+    	mContentViewCore.addJavascriptInterface(object, name);
     }
 
     @Override
@@ -288,6 +284,10 @@ public class ContentView extends FrameLayout
         mContentViewCore.clearHistory();
     }
 
+    String getSelectedText() {
+        return mContentViewCore.getSelectedText();
+    }
+
     /**
      * Start profiling the update speed. You must call {@link #stopFpsProfiling}
      * to stop profiling.
@@ -318,6 +318,10 @@ public class ContentView extends FrameLayout
         mContentViewCore.getContentViewGestureHandler().fling(timeMs, x, y, velocityX, velocityY);
     }
 
+    void endFling(long timeMs) {
+        mContentViewCore.getContentViewGestureHandler().endFling(timeMs);
+    }
+
     /**
      * Start pinch zoom. You must call {@link #pinchEnd} to stop.
      */
@@ -336,11 +340,6 @@ public class ContentView extends FrameLayout
 
     void setIgnoreSingleTap(boolean value) {
         mContentViewCore.getContentViewGestureHandler().setIgnoreSingleTap(value);
-    }
-
-    /** @see ContentViewGestureHandler#setIgnoreRemainingTouchEvents */
-    public void setIgnoreRemainingTouchEvents() {
-        mContentViewCore.getContentViewGestureHandler().setIgnoreRemainingTouchEvents();
     }
 
     /**
@@ -493,11 +492,6 @@ public class ContentView extends FrameLayout
         return mContentViewCore.onGenericMotionEvent(event);
     }
 
-    @Override
-    public boolean performLongClick() {
-        return false;
-    }
-
     /**
      * Sets the current amount to offset incoming touch events by.  This is used to handle content
      * moving and not lining up properly with the android input system.
@@ -573,10 +567,6 @@ public class ContentView extends FrameLayout
     @Override
     public boolean awakenScrollBars(int startDelay, boolean invalidate) {
         return mContentViewCore.awakenScrollBars(startDelay, invalidate);
-    }
-    
-    public void addJavascriptInterface(Object object, String name) {
-    	mContentViewCore.addJavascriptInterface(object, name);
     }
 
     @Override

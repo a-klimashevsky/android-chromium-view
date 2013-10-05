@@ -1,4 +1,4 @@
-
+#!/bin/sh
 # setup environment variables for building / copying chromium sources
 #
 # run this script before you run any of the project scripts/
@@ -10,8 +10,8 @@
 #
 # we use this to scp the files from a fresh chromium build over
 # to our android library projects
-export BUILD=crbuild@ubuntu.local:chromium/src
+export BUILD=~/chromium/src
 
 # this should point to the cwd - i.e. the path to this directory
 # modify this to point wherever you checked this project out to
-export ACV_HOME=~/git/android-chromium-view
+export ACV_HOME=~/android-chromium-view-master

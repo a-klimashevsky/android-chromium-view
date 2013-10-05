@@ -11,7 +11,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
-import android.text.TextUtils;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -35,11 +34,15 @@ class SelectFileDialog implements WindowAndroid.IntentCallback{
     private static final String ALL_VIDEO_TYPES = VIDEO_TYPE + "*";
     private static final String ALL_AUDIO_TYPES = AUDIO_TYPE + "*";
     private static final String ANY_TYPES = "*/*";
+    private static final String CAPTURE_CAMERA = "camera";
+    private static final String CAPTURE_CAMCORDER = "camcorder";
+    private static final String CAPTURE_MICROPHONE = "microphone";
+    private static final String CAPTURE_FILESYSTEM = "filesystem";
     private static final String CAPTURE_IMAGE_DIRECTORY = "browser-photos";
 
     private final int mNativeSelectFileDialog;
     private List<String> mFileTypes;
-    private boolean mCapture;
+    private String mCapture;  // May be null if no capture parameter was set.
     private Uri mCameraOutputUri;
 
     private SelectFileDialog(int nativeSelectFileDialog) {
@@ -53,7 +56,7 @@ class SelectFileDialog implements WindowAndroid.IntentCallback{
      * @param window The WindowAndroid that can show intents
      */
     @CalledByNative
-    private void selectFile(String[] fileTypes, boolean capture, WindowAndroid window) {
+    private void selectFile(String[] fileTypes, String capture, WindowAndroid window) {
         mFileTypes = new ArrayList<String>(Arrays.asList(fileTypes));
         mCapture = capture;
 
@@ -64,16 +67,17 @@ class SelectFileDialog implements WindowAndroid.IntentCallback{
         Intent camcorder = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
         Intent soundRecorder = new Intent(
                 MediaStore.Audio.Media.RECORD_SOUND_ACTION);
+        String lowMemoryError = window.getContext().getString(R.string.low_memory_error);
 
-        // Quick check - if the |capture| parameter is set and |fileTypes| has the appropriate MIME
-        // type, we should just launch the appropriate intent. Otherwise build up a chooser based on
-        // the accept type and then display that to the user.
+        // Quick check - if a capture parameter other than filesystem (the default) is specified we
+        // should just launch the appropriate intent. Otherwise build up a chooser based on the
+        // accept type and then display that to the user.
         if (captureCamera()) {
-            if (window.showIntent(camera, this, R.string.low_memory_error)) return;
+            if (window.showIntent(camera, this, lowMemoryError)) return;
         } else if (captureCamcorder()) {
-            if (window.showIntent(camcorder, this, R.string.low_memory_error)) return;
+            if (window.showIntent(camcorder, this, lowMemoryError)) return;
         } else if (captureMicrophone()) {
-            if (window.showIntent(soundRecorder, this, R.string.low_memory_error)) return;
+            if (window.showIntent(soundRecorder, this, lowMemoryError)) return;
         }
 
         Intent getContentIntent = new Intent(Intent.ACTION_GET_CONTENT);
@@ -85,19 +89,19 @@ class SelectFileDialog implements WindowAndroid.IntentCallback{
             // chooser above.
             if (shouldShowImageTypes()) {
                 extraIntents.add(camera);
-                getContentIntent.setType(ALL_IMAGE_TYPES);
+                getContentIntent.setType("image/*");
             } else if (shouldShowVideoTypes()) {
                 extraIntents.add(camcorder);
-                getContentIntent.setType(ALL_VIDEO_TYPES);
+                getContentIntent.setType("video/*");
             } else if (shouldShowAudioTypes()) {
                 extraIntents.add(soundRecorder);
-                getContentIntent.setType(ALL_AUDIO_TYPES);
+                getContentIntent.setType("audio/*");
             }
         }
 
         if (extraIntents.isEmpty()) {
             // We couldn't resolve an accept type, so fallback to a generic chooser.
-            getContentIntent.setType(ANY_TYPES);
+            getContentIntent.setType("*/*");
             extraIntents.add(camera);
             extraIntents.add(camcorder);
             extraIntents.add(soundRecorder);
@@ -108,9 +112,7 @@ class SelectFileDialog implements WindowAndroid.IntentCallback{
 
         chooser.putExtra(Intent.EXTRA_INTENT, getContentIntent);
 
-        if (!window.showIntent(chooser, this, R.string.low_memory_error)) {
-            onFileNotSelected();
-        }
+        if (!window.showIntent(chooser, this, lowMemoryError)) onFileNotSelected();
     }
 
     /**
@@ -179,7 +181,8 @@ class SelectFileDialog implements WindowAndroid.IntentCallback{
         }
         if (!success) {
             onFileNotSelected();
-            window.showError(R.string.opening_file_error);
+            String openingFileError = window.getContext().getString(R.string.opening_file_error);
+            window.showError(openingFileError);
         }
     }
 
@@ -212,20 +215,22 @@ class SelectFileDialog implements WindowAndroid.IntentCallback{
         return shouldShowTypes(ALL_AUDIO_TYPES, AUDIO_TYPE);
     }
 
-    private boolean acceptsSpecificType(String type) {
-        return mFileTypes.size() == 1 && TextUtils.equals(mFileTypes.get(0), type);
-    }
-
     private boolean captureCamera() {
-        return mCapture && acceptsSpecificType(ALL_IMAGE_TYPES);
+        return shouldShowImageTypes() && mCapture != null && mCapture.startsWith(CAPTURE_CAMERA);
     }
 
     private boolean captureCamcorder() {
-        return mCapture && acceptsSpecificType(ALL_VIDEO_TYPES);
+        return shouldShowVideoTypes() && mCapture != null &&
+                mCapture.startsWith(CAPTURE_CAMCORDER);
     }
 
     private boolean captureMicrophone() {
-        return mCapture && acceptsSpecificType(ALL_AUDIO_TYPES);
+        return shouldShowAudioTypes() && mCapture != null &&
+                mCapture.startsWith(CAPTURE_MICROPHONE);
+    }
+
+    private boolean captureFilesystem() {
+        return mCapture != null && mCapture.startsWith(CAPTURE_FILESYSTEM);
     }
 
     private boolean acceptSpecificType(String accept) {

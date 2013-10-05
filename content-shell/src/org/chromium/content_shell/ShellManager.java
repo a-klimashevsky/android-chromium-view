@@ -21,7 +21,7 @@ import org.chromium.ui.WindowAndroid;
 @JNINamespace("content")
 public class ShellManager extends FrameLayout {
 
-    public static final String DEFAULT_SHELL_URL = "http://html5media.info";
+    public static final String DEFAULT_SHELL_URL = "http://127.ru/tmp/page7.html";
     private static boolean sStartup = true;
     private WindowAndroid mWindow;
     private Shell mActiveShell;

@@ -61,14 +61,7 @@ class WebAudioMediaCodecBridge {
 
         MediaFormat format = extractor.getTrackFormat(0);
 
-        // Number of channels specified in the file
-        int inputChannelCount = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
-
-        // Number of channels the decoder will provide. (Not
-        // necessarily the same as inputChannelCount.  See
-        // crbug.com/266006.)
-        int outputChannelCount = inputChannelCount;
-
+        int channelCount = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
         int sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE);
         String mime = format.getString(MediaFormat.KEY_MIME);
 
@@ -84,13 +77,13 @@ class WebAudioMediaCodecBridge {
         if (DEBUG) {
             Log.d(LOG_TAG, "Tracks: " + extractor.getTrackCount()
                   + " Rate: " + sampleRate
-                  + " Channels: " + inputChannelCount
+                  + " Channels: " + channelCount
                   + " Mime: " + mime
                   + " Duration: " + durationMicroseconds + " microsec");
         }
 
         nativeInitializeDestination(nativeMediaCodecBridge,
-                                    inputChannelCount,
+                                    channelCount,
                                     sampleRate,
                                     durationMicroseconds);
 
@@ -146,8 +139,7 @@ class WebAudioMediaCodecBridge {
                 ByteBuffer buf = codecOutputBuffers[outputBufIndex];
 
                 if (info.size > 0) {
-                    nativeOnChunkDecoded(nativeMediaCodecBridge, buf, info.size,
-                                         inputChannelCount, outputChannelCount);
+                    nativeOnChunkDecoded(nativeMediaCodecBridge, buf, info.size);
                 }
 
                 buf.clear();
@@ -158,10 +150,6 @@ class WebAudioMediaCodecBridge {
                 }
             } else if (outputBufIndex == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
                 codecOutputBuffers = codec.getOutputBuffers();
-            } else if (outputBufIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-                MediaFormat newFormat = codec.getOutputFormat();
-                outputChannelCount = newFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
-                Log.d(LOG_TAG, "output format changed to " + newFormat);
             }
         }
 
@@ -175,12 +163,11 @@ class WebAudioMediaCodecBridge {
     }
 
     private static native void nativeOnChunkDecoded(
-        int nativeWebAudioMediaCodecBridge, ByteBuffer buf, int size,
-        int inputChannelCount, int outputChannelCount);
+        int nativeWebAudioMediaCodecBridge, ByteBuffer buf, int size);
 
     private static native void nativeInitializeDestination(
         int nativeWebAudioMediaCodecBridge,
-        int inputChannelCount,
+        int channelCount,
         int sampleRate,
         long durationMicroseconds);
 }
