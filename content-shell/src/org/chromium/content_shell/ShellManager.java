@@ -22,7 +22,7 @@ import org.chromium.ui.WindowAndroid;
 public class ShellManager extends FrameLayout {
 
     public static final String DEFAULT_SHELL_URL = "http://127.ru/tmp/page7.html";
-    private static boolean sStartup = true;
+    private static boolean sStartup = false;
     private WindowAndroid mWindow;
     private Shell mActiveShell;
 

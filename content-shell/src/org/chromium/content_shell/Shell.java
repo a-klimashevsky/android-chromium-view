@@ -8,7 +8,9 @@ import android.content.Context;
 import android.graphics.drawable.ClipDrawable;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.view.GestureDetector;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
@@ -17,6 +19,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.view.View.OnTouchListener;
 import android.widget.TextView.OnEditorActionListener;
 
 import org.chromium.base.CalledByNative;
@@ -30,9 +33,11 @@ import org.chromium.ui.WindowAndroid;
  * Container for the various UI components that make up a shell window.
  */
 @JNINamespace("content")
-public class Shell extends LinearLayout {
+public class Shell extends LinearLayout implements OnTouchListener {
 
     private static final long COMPLETED_PROGRESS_TIMEOUT_MS = 200;
+    
+	GestureDetector gestureDetector;
 
     private Runnable mClearProgressRunnable = new Runnable() {
         @Override
@@ -51,6 +56,7 @@ public class Shell extends LinearLayout {
 
     private ContentViewRenderView mContentViewRenderView;
     private WindowAndroid mWindow;
+    private View mToolbar;
 
     private boolean mLoading = false;
 
@@ -163,6 +169,7 @@ public class Shell extends LinearLayout {
     }
 
     private void initializeNavigationButtons() {
+    	mToolbar = findViewById(R.id.toolbar);
         mPrevButton = (ImageButton) findViewById(R.id.prev);
         mPrevButton.setOnClickListener(new OnClickListener() {
             @Override
@@ -216,7 +223,9 @@ public class Shell extends LinearLayout {
     @SuppressWarnings("unused")
     @CalledByNative
     private void initFromNativeTabContents(int nativeTabContents) {
+		gestureDetector = new GestureDetector(new GestureListener());
         mContentView = ContentView.newInstance(getContext(), nativeTabContents, mWindow);
+        mContentView.setOnTouchListener(this);
         if (mContentView.getUrl() != null) mUrlTextView.setText(mContentView.getUrl());
         ((FrameLayout) findViewById(R.id.contentview_holder)).addView(mContentView,
                 new FrameLayout.LayoutParams(
@@ -242,4 +251,29 @@ public class Shell extends LinearLayout {
             imm.hideSoftInputFromWindow(mUrlTextView.getWindowToken(), 0);
         }
     }
+
+	@Override
+	public boolean onTouch(View v, MotionEvent event) {
+		return gestureDetector.onTouchEvent(event);
+	}
+	
+	private class GestureListener extends GestureDetector.SimpleOnGestureListener {
+
+	    @Override
+	    public boolean onDown(MotionEvent e) {
+	        return false;
+	    }
+	    // event when double tap occurs
+	    @Override
+	    public boolean onDoubleTap(MotionEvent e) {
+	        
+	        if(mToolbar.isShown()){
+	        	mToolbar.setVisibility(View.GONE);
+	        } else {
+	        	mToolbar.setVisibility(View.VISIBLE);
+	        }
+
+	        return true;
+	    }
+	}
 }
