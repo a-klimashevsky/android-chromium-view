@@ -13,7 +13,7 @@
             android:protectionLevel="signature" />
 
     <application android:name="ContentShellApplication"
-            android:label="ContentShell">
+            android:label="ContentShell" android:hardwareAccelerated="true">
         <activity android:name="ContentShellActivity"
                   android:launchMode="singleTask"
                   android:theme="@android:style/Theme.Holo.Light.NoActionBar"
