@@ -15,8 +15,8 @@ import org.chromium.ui.WindowAndroid;
 /**
  * A version of {@link ContentView} that supports JellyBean features.
  */
-class JellyBeanContentView extends ContentView {
-    JellyBeanContentView(Context context, int nativeWebContents, WindowAndroid windowAndroid,
+public class JellyBeanContentView extends ContentView {
+    protected JellyBeanContentView(Context context, int nativeWebContents, WindowAndroid windowAndroid,
             AttributeSet attrs, int defStyle) {
         super(context, nativeWebContents, windowAndroid, attrs, defStyle);
     }

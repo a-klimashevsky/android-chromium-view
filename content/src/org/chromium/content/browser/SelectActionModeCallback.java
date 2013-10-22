@@ -101,6 +101,10 @@ public class SelectActionModeCallback implements ActionMode.Callback {
     protected Context getContext() {
         return mContext;
     }
+    
+    public String getSelectedText(){
+    	return mActionHandler.getSelectedText();
+    }
 
     @Override
     public boolean onCreateActionMode(ActionMode mode, Menu menu) {

@@ -36,7 +36,7 @@ import org.chromium.ui.WindowAndroid;
 public class ContentView extends FrameLayout
         implements ContentViewCore.InternalAccessDelegate, PageInfo {
 
-    private final ContentViewCore mContentViewCore;
+    protected final ContentViewCore mContentViewCore;
 
     private float mCurrentTouchOffsetX;
     private float mCurrentTouchOffsetY;
