@@ -11,3 +11,4 @@ build
 # NDK support, so we create a native-libs.jar on the fly
 # during the build.
 content-shell/libs/native-libs.jar
+/local.properties
