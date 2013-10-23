@@ -1,4 +1,3 @@
-#!/bin/sh
 # CHROMIUM CONTENT LIB - contains org.chromium.content.* source code
 
 # Make sure you setup and run ../../env.sh first

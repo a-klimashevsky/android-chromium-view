@@ -1,4 +1,3 @@
-#!/bin/sh
 # CHROMIUM BASE LIB - contains org.chromium.base source code
 
 # Make sure you setup and run ../../env.sh first

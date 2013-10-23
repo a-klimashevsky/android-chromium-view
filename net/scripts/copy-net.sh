@@ -1,4 +1,3 @@
-#!/bin/sh
 # CHROMIUM NET LIB
 
 # Make sure you setup and run ../../env.sh first

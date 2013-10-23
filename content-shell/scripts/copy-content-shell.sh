@@ -1,4 +1,3 @@
-#!/bin/sh
 # CHROMIUM CONTENT SHELL - this will build a basic Chromium browser on Android
 
 # Make sure you setup and run ../../env.sh first
@@ -30,8 +29,8 @@ mkdir -p $PROJ/libs/armeabi-v7a/
 cp $BUILD/out/Release/content_shell_apk/libs/armeabi-v7a/libcontent_shell_content_view.so $PROJ/libs/armeabi-v7a/
 
 # copy the x86 shared object (if you built it)
-mkdir -p $PROJ/libs/x86/
-cp $BUILD/out/Release/content_shell_apk/libs/x86/libcontent_shell_content_view.so $PROJ/libs/x86/
+# mkdir -p $PROJ/libs/x86/
+# cp $BUILD/out/Release/content_shell_apk/libs/x86/libcontent_shell_content_view.so $PROJ/libs/x86/
 
 # copy .pak file
 cp $BUILD/out/Release/content_shell/assets/content_shell.pak $PROJ/assets/

@@ -1,4 +1,3 @@
-#!/bin/sh
 # CHROMIUM UI LIB contains org.chromium.ui.* sources
 
 # Make sure you setup and run ../../env.sh first

@@ -1,4 +1,3 @@
-#!/bin/sh
 # CHROMIUM MEDIA LIB - contains org.chromium.media source code
 
 # Make sure you setup and run ../../env.sh first

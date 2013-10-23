@@ -1,4 +1,4 @@
-#!/bin/sh
+
 # setup environment variables for building / copying chromium sources
 #
 # run this script before you run any of the project scripts/
