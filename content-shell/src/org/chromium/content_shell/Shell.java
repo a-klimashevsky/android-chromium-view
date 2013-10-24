@@ -4,8 +4,14 @@
 
 package org.chromium.content_shell;
 
+import java.util.LinkedHashSet;
+
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.drawable.ClipDrawable;
+import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
@@ -28,6 +34,8 @@ import org.chromium.content.browser.ContentView;
 import org.chromium.content.browser.ContentViewRenderView;
 import org.chromium.content.browser.LoadUrlParams;
 import org.chromium.ui.WindowAndroid;
+import org.json.JSONArray;
+import org.json.JSONException;
 
 /**
  * Container for the various UI components that make up a shell window.
@@ -51,6 +59,8 @@ public class Shell extends LinearLayout implements OnTouchListener {
     private EditText mUrlTextView;
     private ImageButton mPrevButton;
     private ImageButton mNextButton;
+    private ImageButton mRefreshButton;
+    private ImageButton mHistoryButton;
 
     private ClipDrawable mProgressDrawable;
 
@@ -59,12 +69,15 @@ public class Shell extends LinearLayout implements OnTouchListener {
     private View mToolbar;
 
     private boolean mLoading = false;
+    
+    SharedPreferences mPref;
 
     /**
      * Constructor for inflating via XML.
      */
     public Shell(Context context, AttributeSet attrs) {
         super(context, attrs);
+        mPref = PreferenceManager.getDefaultSharedPreferences(context);
     }
 
     /**
@@ -149,6 +162,7 @@ public class Shell extends LinearLayout implements OnTouchListener {
         if (TextUtils.equals(url, mContentView.getUrl())) {
             mContentView.reload();
         } else {
+        	updateHistory(url);
             mContentView.loadUrl(new LoadUrlParams(sanitizeUrl(url)));
         }
         mUrlTextView.clearFocus();
@@ -157,7 +171,43 @@ public class Shell extends LinearLayout implements OnTouchListener {
         mContentView.requestFocus();
     }
 
-    /**
+    private void updateHistory(String url) {
+    	String json = mPref.getString("history", null);
+    	JSONArray array = new JSONArray();
+    	if(json != null){
+    		try {
+				array = new JSONArray(json);
+			} catch (JSONException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}
+    	LinkedHashSet<String> history = new LinkedHashSet<String>();
+    	for(int i = 0;i < array.length();i++){
+    		try {
+				history.add(array.getString(i));
+			} catch (JSONException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}
+    	if(history.contains(url)){
+    		history.remove(url);
+    	}
+    	history.add(url);
+    	if(history.size()  > 100){
+    		String f = history.iterator().next();
+    		history.remove(f);
+    	}
+    	array = new JSONArray();
+    	for(String u: history){
+    		array.put(u);
+    	}
+
+    	mPref.edit().putString("history", array.toString()).commit();
+	}
+
+	/**
      * Given an URL, this performs minimal sanitizing to ensure it will be valid.
      * @param url The url to be sanitized.
      * @return The sanitized URL.
@@ -174,7 +224,15 @@ public class Shell extends LinearLayout implements OnTouchListener {
         mPrevButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (mContentView.canGoBack()) mContentView.goBack();
+            	String url = mContentView.getUrl();
+            	int a = url.lastIndexOf("page");
+            	int b = a;
+            	String s = url.substring(a +4);
+            	a = s.indexOf('.');
+            	s = s.substring(0, a);
+            	int page = Integer.parseInt(s);
+            	String res = url.substring(0,b) + "page" + (page-1) + ".html";
+                loadUrl(res);
             }
         });
 
@@ -182,9 +240,36 @@ public class Shell extends LinearLayout implements OnTouchListener {
         mNextButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (mContentView.canGoForward()) mContentView.goForward();
+            	String url = mContentView.getUrl();
+            	int a = url.lastIndexOf("page");
+            	int b = a;
+            	String s = url.substring(a +4);
+            	a = s.indexOf('.');
+            	s = s.substring(0, a);
+            	int page = Integer.parseInt(s);
+            	String res = url.substring(0,b) + "page" + (page+1) + ".html";
+                loadUrl(res);
             }
         });
+        mRefreshButton =(ImageButton) findViewById(R.id.reload);
+        mRefreshButton.setOnClickListener(new OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				mContentView.reload();
+			}
+		});
+        
+        mHistoryButton =(ImageButton) findViewById(R.id.history);
+        mHistoryButton.setOnClickListener(new OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				Intent intent = new Intent(getContext(), HistoryActivity.class);
+				//getContext().startActivity(intent);
+				((Activity)getContext()).startActivityForResult(intent, 42);
+			}
+		});
     }
 
     @SuppressWarnings("unused")

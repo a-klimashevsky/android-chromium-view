@@ -35,10 +35,20 @@
             android:layout_height="38dp"
             android:src="@android:drawable/ic_media_previous"
             android:scaleType="center" />
+        <ImageButton android:id="@+id/reload"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:src="@android:drawable/ic_menu_rotate"
+            android:scaleType="center" />
         <ImageButton android:id="@+id/next"
             android:layout_width="38dp"
             android:layout_height="38dp"
             android:src="@android:drawable/ic_media_next"
+            android:scaleType="center" />
+        <ImageButton android:id="@+id/history"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:src="@android:drawable/ic_menu_recent_history"
             android:scaleType="center" />
     </LinearLayout>
     <FrameLayout android:id="@+id/contentview_holder"

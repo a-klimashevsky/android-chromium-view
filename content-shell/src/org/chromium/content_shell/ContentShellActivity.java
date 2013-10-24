@@ -218,6 +218,10 @@ public class ContentShellActivity extends ChromiumActivity {
 	public void onActivityResult(int requestCode, int resultCode, Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
 		mWindowAndroid.onActivityResult(requestCode, resultCode, data);
+		if(requestCode == 42 && resultCode == RESULT_OK){
+			String url = data.getStringExtra("url");
+			getActiveShell().loadUrl(url);
+		}
 	}
 
 	private static String getUrlFromIntent(Intent intent) {
@@ -228,6 +232,7 @@ public class ContentShellActivity extends ChromiumActivity {
 		return intent != null ? intent
 				.getStringArrayExtra(COMMAND_LINE_ARGS_KEY) : null;
 	}
+	
 
 	/**
 	 * @return The {@link ShellManager} configured for the activity or null if
